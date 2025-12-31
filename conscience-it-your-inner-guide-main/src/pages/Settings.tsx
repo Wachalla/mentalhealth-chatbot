@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
+import AppLayout from "@/components/AppLayout";
 import { Palette, Image, Brain, Type, Lightbulb, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,13 +45,14 @@ const fontStyles = [
 ];
 
 const Settings = () => {
-  const [selectedColor, setSelectedColor] = useState("dark-blue");
+  const [selectedColor, setSelectedColor] = useState("midnight");
   const [selectedBackground, setSelectedBackground] = useState("dark");
   const [selectedPersonality, setSelectedPersonality] = useState("empathetic");
   const [selectedFont, setSelectedFont] = useState("modern");
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { setColorScheme, setBackgroundTheme } = useTheme();
+  const { addNotification } = useNotifications();
   const { toast } = useToast();
 
   // Load settings from database
@@ -61,31 +63,66 @@ const Settings = () => {
   }, [user]);
 
   const loadSettings = async () => {
-    const { data, error } = await supabase
-      .from("user_settings")
-      .select("*")
-      .eq("id", user?.id)
-      .single();
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("id", user?.id)
+        .single();
 
-    if (data) {
-      setSelectedColor(data.color_scheme);
-      setSelectedBackground(data.background_theme);
-      setSelectedPersonality(data.ai_personality);
-      setSelectedFont(data.font_style);
+      if (data) {
+        setSelectedColor(data.color_scheme);
+        setSelectedBackground(data.background_theme);
+        setSelectedPersonality(data.ai_personality);
+        setSelectedFont(data.font_style);
+      }
+      // If table doesn't exist or no settings found, use defaults
+    } catch (error) {
+      console.log("Settings table not found, using defaults");
     }
     setLoading(false);
   };
 
   const saveSettings = async (field: string, value: string) => {
-    const { error } = await supabase
-      .from("user_settings")
-      .update({ [field]: value })
-      .eq("id", user?.id);
+    try {
+      const { error } = await supabase
+        .from("user_settings")
+        .update({ [field]: value })
+        .eq("id", user?.id);
 
-    if (error) {
-      toast({ title: "Error saving settings", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Settings saved!" });
+      if (error) {
+        // Try to insert if update fails (record doesn't exist)
+        const { error: insertError } = await supabase
+          .from("user_settings")
+          .insert({ 
+            id: user?.id, 
+            [field]: value,
+            color_scheme: selectedColor,
+            background_theme: selectedBackground,
+            ai_personality: selectedPersonality,
+            font_style: selectedFont
+          });
+
+        if (insertError) {
+          console.log("Settings not saved (table might not exist):", insertError.message);
+          toast({ 
+            title: "Settings Updated", 
+            description: "Changes applied locally (database not available)" 
+          });
+        } else {
+          toast({ title: "Settings saved!" });
+        }
+      } else {
+        toast({ title: "Settings saved!" });
+      }
+    } catch (error) {
+      console.log("Settings not saved:", error);
+      toast({ 
+        title: "Settings Updated", 
+        description: "Changes applied locally" 
+      });
     }
   };
 
@@ -113,16 +150,16 @@ const Settings = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <AppLayout>
         <div className="flex items-center justify-center h-full">
           <p className="text-muted-foreground">Loading settings...</p>
         </div>
-      </Layout>
+      </AppLayout>
     );
   }
 
   return (
-    <Layout>
+    <AppLayout>
       <div className="p-4 lg:p-6 space-y-8 overflow-auto max-w-3xl mx-auto">
         <div>
           <h2 className="font-display text-2xl font-bold text-foreground">Settings</h2>
@@ -242,6 +279,64 @@ const Settings = () => {
           </div>
         </section>
 
+        {/* Notification Test Section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 text-foreground">
+            <Brain className="w-5 h-5" />
+            <h3 className="font-display font-semibold text-lg">Test Notifications</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => addNotification({
+                type: 'success',
+                title: 'Settings Saved',
+                message: 'Your preferences have been successfully saved.',
+                duration: 3000
+              })}
+              className="p-3 rounded-xl border bg-emerald-50/80 border-emerald-200 text-emerald-900 hover:bg-emerald-100/80 transition-all"
+            >
+              <span className="font-medium">Success Notification</span>
+            </button>
+            <button
+              onClick={() => addNotification({
+                type: 'info',
+                title: 'New Feature',
+                message: 'Check out the new chat personalities!',
+                duration: 4000
+              })}
+              className="p-3 rounded-xl border bg-blue-50/80 border-blue-200 text-blue-900 hover:bg-blue-100/80 transition-all"
+            >
+              <span className="font-medium">Info Notification</span>
+            </button>
+            <button
+              onClick={() => addNotification({
+                type: 'warning',
+                title: 'Session Timeout',
+                message: 'Your session will expire in 5 minutes.',
+                duration: 5000
+              })}
+              className="p-3 rounded-xl border bg-amber-50/80 border-amber-200 text-amber-900 hover:bg-amber-100/80 transition-all"
+            >
+              <span className="font-medium">Warning Notification</span>
+            </button>
+            <button
+              onClick={() => addNotification({
+                type: 'support',
+                title: 'Support Available',
+                message: 'Need help? Our support team is here for you.',
+                action: {
+                  label: 'Get Help',
+                  onClick: () => console.log('Support clicked')
+                },
+                duration: 6000
+              })}
+              className="p-3 rounded-xl border bg-rose-50/80 border-rose-200 text-rose-900 hover:bg-rose-100/80 transition-all"
+            >
+              <span className="font-medium">Support Notification</span>
+            </button>
+          </div>
+        </section>
+
         {/* Note */}
         <div className="flex items-start gap-2 text-muted-foreground text-sm bg-card/50 p-4 rounded-xl border border-border/30">
           <Lightbulb className="w-4 h-4 mt-0.5 text-accent flex-shrink-0" />
@@ -250,7 +345,7 @@ const Settings = () => {
           </p>
         </div>
       </div>
-    </Layout>
+    </AppLayout>
   );
 };
 

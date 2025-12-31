@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
+import Layout from "@/VRCalmRoom.jsx/Layout";
 import { User, Brain, Tag, Calendar, LogOut, Trash2, Edit2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, Mail, Lock, X } from "lucide-react";
@@ -9,7 +9,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const [showWelcome, setShowWelcome] = useState(false);
+  const { signIn, signUp, user, devBypass } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -19,9 +20,34 @@ const Auth = () => {
     return null;
   }
 
+  // Handle welcome animation timer
+  useEffect(() => {
+    if (showWelcome) {
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcome]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Hardcoded bypass for development
+    if (email === "joeyentsie2004@gmail.com" && password === "kofi123") {
+      const bypassSuccess = await devBypass(email, password);
+      if (bypassSuccess) {
+        toast({
+          title: "Development Bypass",
+          description: "Welcome Back, Boss! Authentication bypassed for development.",
+        });
+        setShowWelcome(true);
+        setTimeout(() => navigate("/"), 500);
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       if (isSignUp) {
@@ -45,7 +71,8 @@ const Auth = () => {
             title: "Account created!",
             description: "Welcome to Conscience. You're now signed in.",
           });
-          navigate("/");
+          setShowWelcome(true);
+          setTimeout(() => navigate("/"), 500);
         }
       } else {
         const { error } = await signIn(email, password);
@@ -56,7 +83,8 @@ const Auth = () => {
             variant: "destructive",
           });
         } else {
-          navigate("/");
+          setShowWelcome(true);
+          setTimeout(() => navigate("/"), 500);
         }
       }
     } catch (err) {
@@ -72,6 +100,23 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      {/* Welcome Animation */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="text-center space-y-4">
+            <h1 className="font-display text-6xl font-bold text-white animate-pulse">
+              Welcome to
+            </h1>
+            <h2 className="font-display text-7xl font-bold text-primary animate-bounce">
+              Conscience
+            </h2>
+            <p className="text-white/80 animate-fade-in">
+              Your mental health companion
+            </p>
+          </div>
+        </div>
+      )}
+      
       <div className="w-full max-w-md">
         {/* Modal Card */}
         <div className="glass-card p-6 space-y-6">
@@ -87,22 +132,48 @@ const Auth = () => {
 
           {/* Social Login Buttons */}
           <div className="space-y-3">
+            {/* Google */}
             <button className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-card border border-border/50 text-foreground hover:bg-muted/50 transition-colors">
-              <span className="text-lg">🔍</span>
-              Continue with Google
+              <img 
+                src="https://authjs.dev/img/providers/google.svg" 
+                alt="Google" 
+                className="w-5 h-5" 
+              />
+              <span className="text-sm font-medium">Continue with Google</span>
             </button>
+
+            {/* Apple */}
             <button className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-card border border-border/50 text-foreground hover:bg-muted/50 transition-colors">
-              Continue with Apple
+              <img 
+                src="https://authjs.dev/img/providers/apple.svg" 
+                alt="Apple" 
+                className="w-5 h-5 dark:invert" 
+              />
+              <span className="text-sm font-medium">Continue with Apple</span>
             </button>
+
+            {/* X(formely twitter) */}
             <button className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-card border border-border/50 text-foreground hover:bg-muted/50 transition-colors">
-              <span className="text-lg">🦋</span>
-              Continue with Twitter
+              <img 
+                src="https://authjs.dev/img/providers/twitter.svg" 
+                alt="Twitter" 
+                className="w-5 h-5" 
+              />
+              <span className="text-sm font-medium">Continue with X</span>
             </button>
+
+            {/* Facebook */}
             <button className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-card border border-border/50 text-foreground hover:bg-muted/50 transition-colors">
-              <span className="text-lg">👥</span>
-              Continue with Facebook
+              <img 
+                src="https://authjs.dev/img/providers/facebook.svg" 
+                alt="Facebook" 
+                className="w-5 h-5" 
+              />
+              <span className="text-sm font-medium">Continue with Facebook</span>
             </button>
           </div>
+  
+
 
           {/* Divider */}
           <div className="flex items-center gap-4">

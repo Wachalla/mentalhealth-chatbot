@@ -1,8 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 1s ease-out;
+}
+
+.animate-pulse-red {
+  animation: pulse-red 2s infinite;
+}
 
 @layer base {
   :root {
@@ -11,8 +41,43 @@
 
   /* ============ COLOR SCHEMES ============ */
 
-  /* Dark Blue (default) */
+  /* Midnight (default) */
   :root,
+  [data-color-scheme="midnight"] {
+    --background: 250 30% 8%;
+    --foreground: 250 20% 95%;
+    --card: 250 35% 12%;
+    --card-foreground: 250 20% 95%;
+    --popover: 250 35% 10%;
+    --popover-foreground: 250 20% 95%;
+    --primary: 260 60% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 35% 18%;
+    --secondary-foreground: 250 20% 85%;
+    --muted: 250 25% 15%;
+    --muted-foreground: 250 15% 55%;
+    --accent: 290 60% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 250 25% 18%;
+    --input: 250 30% 14%;
+    --ring: 260 60% 55%;
+    --chat-user: 260 60% 55%;
+    --chat-ai: 250 35% 18%;
+    --chat-user-text: 0 0% 100%;
+    --chat-ai-text: 250 20% 95%;
+    --sidebar-background: 250 35% 6%;
+    --sidebar-foreground: 250 20% 70%;
+    --sidebar-primary: 260 60% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 250 30% 14%;
+    --sidebar-accent-foreground: 250 20% 95%;
+    --sidebar-border: 250 25% 15%;
+    --sidebar-ring: 260 60% 55%;
+  }
+
+  /* Dark Blue Theme */
   [data-color-scheme="dark-blue"] {
     --background: 210 35% 12%;
     --foreground: 200 20% 95%;
@@ -23,7 +88,7 @@
     --primary: 195 80% 55%;
     --primary-foreground: 210 35% 10%;
     --secondary: 210 40% 22%;
-    --secondary-foreground: 200 20% 85%;
+    --secondary-foreground: 200 20% 95%;
     --muted: 210 30% 20%;
     --muted-foreground: 200 15% 60%;
     --accent: 15 75% 60%;
@@ -232,41 +297,6 @@
     --sidebar-ring: 280 70% 60%;
   }
 
-  /* Midnight Theme */
-  [data-color-scheme="midnight"] {
-    --background: 250 30% 8%;
-    --foreground: 250 20% 95%;
-    --card: 250 35% 12%;
-    --card-foreground: 250 20% 95%;
-    --popover: 250 35% 10%;
-    --popover-foreground: 250 20% 95%;
-    --primary: 260 60% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 250 35% 18%;
-    --secondary-foreground: 250 20% 85%;
-    --muted: 250 25% 15%;
-    --muted-foreground: 250 15% 55%;
-    --accent: 290 60% 50%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 65% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 250 25% 18%;
-    --input: 250 30% 14%;
-    --ring: 260 60% 55%;
-    --chat-user: 260 60% 55%;
-    --chat-ai: 250 35% 18%;
-    --chat-user-text: 0 0% 100%;
-    --chat-ai-text: 250 20% 95%;
-    --sidebar-background: 250 35% 6%;
-    --sidebar-foreground: 250 20% 70%;
-    --sidebar-primary: 260 60% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 30% 14%;
-    --sidebar-accent-foreground: 250 20% 95%;
-    --sidebar-border: 250 25% 15%;
-    --sidebar-ring: 260 60% 55%;
-  }
-
   /* Dark Forest Theme */
   [data-color-scheme="dark-forest"] {
     --background: 150 35% 8%;
@@ -412,12 +442,22 @@
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    @apply bg-background text-foreground antialiased;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23234' fill-opacity='0.15'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold;
+    font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    @apply font-semibold;
+  }
+
+  .font-display {
+    font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  }
+
+  .font-body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   }
 }
 
@@ -443,7 +483,7 @@
   }
 
   .nav-item {
-    @apply flex flex-col lg:flex-row items-center gap-1 lg:gap-3 px-2 lg:px-4 py-3 rounded-xl text-sidebar-foreground transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-xs lg:text-sm;
+    @apply flex flex-col lg:flex-row items-center gap-2 lg:gap-3 px-3 lg:px-4 py-3 lg:py-3 rounded-xl text-sidebar-foreground transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm lg:text-sm font-medium;
   }
 
   .nav-item-active {

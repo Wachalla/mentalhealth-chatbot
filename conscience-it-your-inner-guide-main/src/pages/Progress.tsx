@@ -1,4 +1,4 @@
-import Layout from "@/components/Layout";
+import AppLayout from "@/components/AppLayout";
 import { Heart, Zap, Calendar, Clock, Brain } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
@@ -31,7 +31,7 @@ const insights = [
 
 const Progress = () => {
   return (
-    <Layout>
+    <AppLayout>
       <div className="p-4 lg:p-6 space-y-6 overflow-auto">
         <div>
           <h2 className="font-display text-2xl font-bold text-foreground">Progress & Analytics</h2>
@@ -167,7 +167,7 @@ const Progress = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </AppLayout>
   );
 };
 

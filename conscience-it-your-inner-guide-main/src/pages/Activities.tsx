@@ -1,6 +1,7 @@
 import { useState } from "react";
-import Layout from "@/components/Layout";
-import { Wind, Heart, Footprints, Moon, Sun, Target, Calendar, Lightbulb } from "lucide-react";
+import Layout from "@/VRCalmRoom.jsx/Layout";
+import { Wind, Heart, Footprints, Moon, Sun, Target, Calendar, Lightbulb, Brain } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const activities = [
   {
@@ -62,6 +63,7 @@ const activities = [
 const Activities = () => {
   const [activeTab, setActiveTab] = useState<"activities" | "schedule">("activities");
   const [completedActivities, setCompletedActivities] = useState<number[]>([]);
+  const navigate = useNavigate();
 
   const handleComplete = (id: number) => {
     if (completedActivities.includes(id)) {
@@ -77,6 +79,91 @@ const Activities = () => {
         <div>
           <h2 className="font-display text-2xl font-bold text-foreground">Therapy Activities</h2>
           <p className="text-muted-foreground text-sm">AI-curated activities and schedules for your wellness journey</p>
+        </div>
+
+        {/* Breathing Exercises Section */}
+        <div className="glass-card p-4 lg:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Wind className="w-5 h-5 text-primary" />
+            <h3 className="font-display font-semibold text-lg text-foreground">Breathing Exercises</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Deep Diaphragmatic */}
+            <div className="bg-gradient-to-br from-green-50/20 to-emerald-50/20 border border-green-200/30 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <Wind className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-display font-semibold text-foreground">Deep Diaphragmatic</h4>
+                  <p className="text-sm text-muted-foreground">Relaxing</p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                Sit comfortably. Breathe deeply through nose, belly expands. Pause. Exhale slowly.
+              </p>
+              
+              <button
+                onClick={() => navigate('/vr', { state: { mode: 'deep' } })}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Wind className="w-4 h-4" />
+                Start Session
+              </button>
+            </div>
+
+            {/* Box Breathing */}
+            <div className="bg-gradient-to-br from-blue-50/20 to-cyan-50/20 border border-blue-200/30 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-display font-semibold text-foreground">Box Breathing</h4>
+                  <p className="text-sm text-muted-foreground">Focusing</p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                Inhale 4s, Hold 4s, Exhale 4s, Hold 4s. Centers your focus.
+              </p>
+              
+              <button
+                onClick={() => navigate('/vr', { state: { mode: 'box' } })}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Target className="w-4 h-4" />
+                Start Session
+              </button>
+            </div>
+
+            {/* Mindful Breathing */}
+            <div className="bg-gradient-to-br from-purple-50/20 to-pink-50/20 border border-purple-200/30 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <Brain className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h4 className="font-display font-semibold text-foreground">Mindful Breathing</h4>
+                  <p className="text-sm text-muted-foreground">Observing</p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                Find a comfortable seat. Observe natural breath. If mind wanders, gently guide focus back.
+              </p>
+              
+              <button
+                onClick={() => navigate('/vr', { state: { mode: 'mindful' } })}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Brain className="w-4 h-4" />
+                Start Session
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}

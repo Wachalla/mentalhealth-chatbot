@@ -20,7 +20,7 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [colorScheme, setColorSchemeState] = useState("dark-blue");
+  const [colorScheme, setColorSchemeState] = useState("midnight");
   const [backgroundTheme, setBackgroundThemeState] = useState("dark");
   const { user } = useAuth();
 
@@ -38,15 +38,22 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [colorScheme, backgroundTheme]);
 
   const loadTheme = async () => {
-    const { data } = await supabase
-      .from("user_settings")
-      .select("color_scheme, background_theme")
-      .eq("id", user?.id)
-      .single();
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from("user_settings")
+        .select("color_scheme, background_theme")
+        .eq("id", user?.id)
+        .single();
 
-    if (data) {
-      setColorSchemeState(data.color_scheme);
-      setBackgroundThemeState(data.background_theme);
+      if (data) {
+        setColorSchemeState(data.color_scheme);
+        setBackgroundThemeState(data.background_theme);
+      }
+    } catch (error) {
+      // Ignore errors for theme loading (table might not exist yet)
+      console.log("Theme settings not found, using defaults");
     }
   };
 

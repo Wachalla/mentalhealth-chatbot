@@ -1,14 +1,11 @@
-import Sidebar from "@/components/Sidebar";
-import ChatContainer from "@/components/ChatContainer";
+import AppLayout from "@/components/AppLayout";
+import ChatContainer from "@/VRCalmRoom.jsx/ChatContainer";
 
 const Index = () => {
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <ChatContainer />
-      </main>
-    </div>
+    <AppLayout>
+      <ChatContainer />
+    </AppLayout>
   );
 };
 

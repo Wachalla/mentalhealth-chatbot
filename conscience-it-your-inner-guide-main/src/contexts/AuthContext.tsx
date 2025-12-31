@@ -9,6 +9,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  devBypass: (email: string, password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,17 +20,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    // Skip Supabase auth for testing with placeholder credentials
+    if (import.meta.env.VITE_SUPABASE_URL?.includes('demo')) {
+      setLoading(false);
+      return;
+    }
 
-    // THEN check for existing session
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -39,36 +46,75 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    if (import.meta.env.VITE_SUPABASE_URL?.includes('demo')) {
+      return { error: new Error('Auth disabled in demo mode') };
+    }
+    
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
-      }
-    });
+    if (import.meta.env.VITE_SUPABASE_URL?.includes('demo')) {
+      return { error: new Error('Auth disabled in demo mode') };
+    }
+    
+    const { error } = await supabase.auth.signUp({ email, password });
     return { error };
   };
 
   const signOut = async () => {
+    if (import.meta.env.VITE_SUPABASE_URL?.includes('demo')) {
+      return;
+    }
+    
     await supabase.auth.signOut();
   };
 
-  return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const devBypass = async (email: string, password: string): Promise<boolean> => {
+    if (email === "joeyentsie2004@gmail.com" && password === "kofi123") {
+      // Create a mock user object
+      const mockUser = {
+        id: 'dev-bypass-user',
+        email: 'joeyentsie2004@gmail.com',
+        aud: 'authenticated',
+        role: 'authenticated',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as User;
+
+      const mockSession = {
+        user: mockUser,
+        access_token: 'dev-bypass-token',
+        refresh_token: 'dev-bypass-refresh',
+        expires_in: 3600,
+        token_type: 'bearer',
+      } as Session;
+
+      setUser(mockUser);
+      setSession(mockSession);
+      setLoading(false);
+      return true;
+    }
+    return false;
+  };
+
+  const value = {
+    user,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    devBypass,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
