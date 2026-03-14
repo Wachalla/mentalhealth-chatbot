@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import QuickNav from "@/components/QuickNav";
-import { X } from "lucide-react";
+import { X, Monitor, Headphones } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { apiFetch } from "@/lib/api";
+import { SAMPLE_ACTIVITIES } from "@/types/activities";
 
 type SpaceType = "forest" | "beach" | "sandy" | "mountain";
 
@@ -25,7 +27,13 @@ declare global {
 
 const VRRoom: React.FC = () => {
   const location = useLocation();
-  const mode = (location.state?.mode as 'box' | 'deep' | 'mindful') || 'box';
+  const locationState = (location.state || {}) as {
+    mode?: 'box' | 'deep' | 'mindful';
+    activityId?: string;
+    activitySessionId?: string;
+    recommendedSource?: string;
+  };
+  const mode = locationState.mode || 'box';
   const [currentSpace, setCurrentSpace] = useState<SpaceType>("beach");
   const [isVRMode, setIsVRMode] = useState(false);
   const [fadeIn, setFadeIn] = useState(true);
@@ -39,7 +47,59 @@ const VRRoom: React.FC = () => {
     'Breathe In'
   );
   const [currentScale, setCurrentScale] = useState(1);
+  const [vrDevices, setVrDevices] = useState<any[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<string>('');
+  const [showDeviceSelector, setShowDeviceSelector] = useState(false);
+  const [vrSessionId, setVrSessionId] = useState<string | null>(null);
   const sceneRef = useRef<any>(null);
+  const vrSessionIdRef = useRef<string | null>(null);
+  const currentSpaceRef = useRef<SpaceType>("beach");
+  const sessionStartedAtRef = useRef<number | null>(null);
+  const completionSubmittedRef = useRef(false);
+
+  useEffect(() => {
+    vrSessionIdRef.current = vrSessionId;
+  }, [vrSessionId]);
+
+  useEffect(() => {
+    currentSpaceRef.current = currentSpace;
+  }, [currentSpace]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const createVREntry = async () => {
+      try {
+        const session = await apiFetch<{ id: string }>("/vr/session", {
+          method: "POST",
+          body: JSON.stringify({
+            environment: currentSpace,
+            breathing_technique: mode,
+            emotional_state: mode,
+          }),
+        });
+
+        if (!isMounted) return;
+
+        setVrSessionId(session.id);
+        sessionStartedAtRef.current = Date.now();
+      } catch (error) {
+        console.error("Failed to create VR session entry", error);
+      }
+    };
+
+    createVREntry();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      void finalizeSession();
+    };
+  }, []);
 
   useEffect(() => {
     // Check if A-Frame is already loaded (either by npm package or previous load)
@@ -49,73 +109,62 @@ const VRRoom: React.FC = () => {
       // Add delay to ensure A-Frame systems are fully initialized
       setTimeout(() => {
         setSceneReady(true);
-      }, 500);
-      return;
+      }, 1000);
+    } else {
+      // Load A-Frame script dynamically
+      const script = document.createElement('script');
+      script.src = 'https://aframe.io/releases/1.5.0/aframe.min.js';
+      script.async = true;
+      
+      script.onload = () => {
+        console.log('A-Frame loaded successfully');
+        setAframeReady(true);
+        // Additional delay for A-Frame systems to initialize
+        setTimeout(() => {
+          setSceneReady(true);
+        }, 1000);
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load A-Frame');
+      };
+      
+      document.head.appendChild(script);
     }
+  }, []);
 
-    // Dynamically load A-Frame script with a unique ID to prevent conflicts
-    const scriptId = 'aframe-dynamic-load';
-    const existingScript = document.getElementById(scriptId);
-    
-    if (existingScript) {
-      console.log('A-Frame script already exists, waiting for load');
-      // If script exists but AFRAME not ready, wait for it
-      const checkInterval = setInterval(() => {
-        if ((window as any).AFRAME) {
-          clearInterval(checkInterval);
-          setAframeReady(true);
+  useEffect(() => {
+    const detectVRDevices = async () => {
+      const devices = [];
+      
+      // Check for WebXR support
+      if ('xr' in navigator) {
+        try {
+          const isVRSupported = await (navigator as any).xr.isSessionSupported('immersive-vr');
+          if (isVRSupported) {
+            devices.push({ name: 'WebXR VR Device', type: 'webxr' });
+            if (!selectedDevice) {
+              setSelectedDevice('WebXR VR Device');
+            }
+          }
+        } catch (error) {
+          console.log('WebXR detection failed:', error);
         }
-      }, 100);
-      
-      // Safety timeout
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        setAframeReady(true);
-      }, 3000);
-      
-      return;
-    }
-
-    // Create and append new script
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://aframe.io/releases/1.6.0/aframe.min.js';
-    script.async = true;
-    script.crossOrigin = 'anonymous';
-    
-    script.onload = () => {
-      console.log('A-Frame loaded successfully from CDN');
-      setAframeReady(true);
-      // Add delay to ensure A-Frame systems are fully initialized
-      setTimeout(() => {
-        setSceneReady(true);
-      }, 500);
-    };
-    
-    script.onerror = () => {
-      console.error('Failed to load A-Frame from CDN');
-      setAframeReady(true); // Force ready to prevent infinite loading
-    };
-    
-    document.head.appendChild(script);
-
-    // Safety timeout: force ready after 3 seconds
-    const safetyTimeout = setTimeout(() => {
-      if (!aframeReady) {
-        console.warn('A-Frame loading timeout, forcing ready state');
-        setAframeReady(true);
       }
-    }, 3000);
-
-    // Hide instructions after 8 seconds
-    const timer = setTimeout(() => setShowInstructions(false), 8000);
-    
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(safetyTimeout);
-      // Don't remove the script as it might be needed by other components
+      
+      // Add desktop option
+      devices.push({ name: 'Desktop Mode', type: 'desktop' });
+      if (!selectedDevice) {
+        setSelectedDevice('Desktop Mode');
+      }
+      
+      setVrDevices(devices);
     };
-  }, [aframeReady]);
+
+    if (aframeReady) {
+      detectVRDevices();
+    }
+  }, [aframeReady, selectedDevice]);
 
   useEffect(() => {
     const scene = sceneRef.current;
@@ -206,6 +255,95 @@ const VRRoom: React.FC = () => {
     }, 300);
   };
 
+  const finalizeSession = async () => {
+    if (completionSubmittedRef.current || !vrSessionIdRef.current || !sessionStartedAtRef.current) {
+      return;
+    }
+
+    completionSubmittedRef.current = true;
+    const durationMinutes = Math.max(1, Math.round((Date.now() - sessionStartedAtRef.current) / 60000));
+
+    try {
+      await apiFetch(`/vr/session/${vrSessionIdRef.current}/complete`, {
+        method: "POST",
+        body: JSON.stringify({
+          duration_minutes: durationMinutes,
+          completion_rate: 100,
+          notes: `${mode} breathing session in ${currentSpaceRef.current}`,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to complete VR session", error);
+    }
+
+    if (locationState.activitySessionId && locationState.activityId) {
+      const linkedActivity = SAMPLE_ACTIVITIES.find((activity) => activity.id === locationState.activityId);
+
+      if (linkedActivity) {
+        try {
+          await apiFetch("/activities/complete", {
+            method: "POST",
+            body: JSON.stringify({
+              session_id: locationState.activitySessionId,
+              activity_id: linkedActivity.id,
+              title: linkedActivity.title,
+              category: linkedActivity.category,
+              duration_minutes: linkedActivity.duration,
+              recommended_source: locationState.recommendedSource || "vr_room",
+            }),
+          });
+        } catch (error) {
+          console.error("Failed to complete linked activity session", error);
+        }
+      }
+    }
+  };
+
+  const enterVR = async () => {
+    try {
+      if (!("xr" in navigator)) {
+        const scene = sceneRef.current;
+        if (scene && scene.enterVR) {
+          scene.enterVR();
+          return;
+        }
+        return;
+      }
+
+      const session = await (navigator as any).xr.requestSession("immersive-vr", {
+        optionalFeatures: ["local-floor", "bounded-floor"],
+      });
+
+      console.log("VR session started:", session);
+      setIsVRMode(true);
+
+      session.addEventListener("end", () => {
+        console.log("VR session ended");
+        setIsVRMode(false);
+        void finalizeSession();
+      });
+    } catch (error) {
+      console.error("Failed to start VR session:", error);
+      const scene = sceneRef.current;
+      if (scene && scene.enterVR) {
+        scene.enterVR();
+      }
+    }
+  };
+
+  const exitVR = async () => {
+    try {
+      const session = await (navigator as any).xr?.getSession();
+      if (session) {
+        await session.end();
+      }
+      setIsVRMode(false);
+      await finalizeSession();
+    } catch (error) {
+      console.error('Failed to exit VR:', error);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="relative w-full h-full bg-black">
@@ -290,6 +428,84 @@ const VRRoom: React.FC = () => {
       {isVRMode && (
         <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
           VR Mode Active
+        </div>
+      )}
+
+      {/* VR Device Selector */}
+      {aframeReady && (
+        <div className="absolute top-16 right-4 z-40">
+          <button
+            onClick={() => setShowDeviceSelector(!showDeviceSelector)}
+            className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+          >
+            <Monitor className="w-4 h-4" />
+            <span className="text-sm">
+              {selectedDevice || 'Select Device'}
+            </span>
+          </button>
+          
+          {showDeviceSelector && (
+            <div className="absolute top-full right-0 mt-2 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-xl">
+              <div className="p-2">
+                <h3 className="text-white font-semibold mb-2 text-sm">VR Devices</h3>
+                <button
+                  onClick={() => {
+                    setSelectedDevice('Desktop Mode');
+                    setShowDeviceSelector(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 ${
+                    selectedDevice === 'Desktop Mode'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  }`}
+                >
+                  <Monitor className="w-4 h-4" />
+                  <span>Desktop Mode</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedDevice('VR Headset');
+                    setShowDeviceSelector(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center gap-2 ${
+                    selectedDevice === 'VR Headset'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  }`}
+                >
+                  <Headphones className="w-4 h-4" />
+                  <span>VR Headset</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VR Entry Button */}
+      {aframeReady && !isVRMode && (
+        <div className="absolute top-32 right-4 z-40">
+          <button
+            onClick={enterVR}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+            disabled={!('xr' in navigator)}
+          >
+            <Headphones className="w-5 h-5" />
+            <span className="font-medium">Enter VR Mode</span>
+          </button>
+        </div>
+      )}
+
+      {/* VR Exit Button */}
+      {isVRMode && (
+        <div className="absolute top-32 right-4 z-40">
+          <button
+            onClick={exitVR}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+          >
+            <X className="w-5 h-5" />
+            <span className="font-medium">Exit VR</span>
+          </button>
         </div>
       )}
 

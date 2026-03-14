@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { ReactNode, createContext, useContext, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, AlertCircle, Heart, Info, X } from "lucide-react";
@@ -28,7 +29,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const addNotification = (notification: Omit<Notification, 'id'>) => {
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     const newNotification = { ...notification, id, duration: notification.duration || 5000 };
     
     setNotifications(prev => [...prev, newNotification]);

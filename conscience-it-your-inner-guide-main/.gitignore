@@ -1,0 +1,15 @@
+backend/.env*
+*.key
+*.pem
+.env
+.env.*
+backend/.env*
+*.key
+*.pem
+.env
+.env.*
+backend/.env*
+*.key
+*.pem
+.env
+.env.*

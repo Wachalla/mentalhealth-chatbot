@@ -32,7 +32,7 @@ const QuickNav = ({ className, showBackButton = false, backPath = "/" }: QuickNa
       )}
       
       {quickActions.map((action) => (
-        <Link key={action.path} to={action.path}>
+        <Link key={`${action.label}-${action.path}`} to={action.path}>
           <Button 
             variant={location.pathname === action.path ? "default" : "ghost"} 
             size="sm" 

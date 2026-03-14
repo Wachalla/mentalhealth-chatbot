@@ -1,261 +1,298 @@
-import { useState } from "react";
-import Layout from "@/VRCalmRoom.jsx/Layout";
-import { Wind, Heart, Footprints, Moon, Sun, Target, Calendar, Lightbulb, Brain } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import AppLayout from "@/components/AppLayout";
+import { Brain, CheckCircle2, Clock3, Play, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SAMPLE_ACTIVITIES, type Activity } from "@/types/activities";
+import { apiFetch } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
-const activities = [
-  {
-    id: 1,
-    title: "5-Minute Breathing Exercise",
-    description: "Practice deep breathing to reduce anxiety and promote calmness",
-    duration: "5 min",
-    icon: Wind,
-    tags: ["Reduces stress", "Improves focus"],
-    completed: false,
-  },
-  {
-    id: 2,
-    title: "Gratitude Journaling",
-    description: "Write down three things you're grateful for today",
-    duration: "10 min",
-    icon: Heart,
-    tags: ["Positive mindset", "Self-awareness"],
-    completed: false,
-  },
-  {
-    id: 3,
-    title: "Mindful Walk",
-    description: "Take a walk while focusing on your surroundings and sensations",
-    duration: "15 min",
-    icon: Footprints,
-    tags: ["Physical health", "Mental clarity"],
-    completed: false,
-  },
-  {
-    id: 4,
-    title: "Evening Reflection",
-    description: "Reflect on your day and identify moments of growth",
-    duration: "10 min",
-    icon: Moon,
-    tags: ["Self-awareness", "Growth mindset"],
-    completed: false,
-  },
-  {
-    id: 5,
-    title: "Morning Affirmations",
-    description: "Start your day with positive self-talk and intentions",
-    duration: "5 min",
-    icon: Sun,
-    tags: ["Confidence", "Positive outlook"],
-    completed: false,
-  },
-  {
-    id: 6,
-    title: "Body Scan Meditation",
-    description: "Progressive relaxation technique to release tension",
-    duration: "15 min",
-    icon: Target,
-    tags: ["Relaxation", "Body awareness"],
-    completed: false,
-  },
-];
+interface ActivitySummaryResponse {
+  today_completed: number;
+  total_completed: number;
+  activity_stats: {
+    activity_id: string;
+    title: string;
+    completion_count: number;
+    last_completed_at: string | null;
+  }[];
+}
+
+interface ActivitySessionResponse {
+  id: string;
+  status: string;
+}
+
+const vrModeMap: Record<string, "box" | "deep" | "mindful"> = {
+  "breathing-4-7-8": "box",
+  "mindfulness-body-scan": "mindful",
+};
+
+const categoryLabelMap: Record<string, string> = {
+  breathing: "Breathing",
+  grounding: "Grounding",
+  mindfulness: "Mindfulness",
+};
 
 const Activities = () => {
-  const [activeTab, setActiveTab] = useState<"activities" | "schedule">("activities");
-  const [completedActivities, setCompletedActivities] = useState<number[]>([]);
+  const [summary, setSummary] = useState<ActivitySummaryResponse | null>(null);
+  const [activeSessions, setActiveSessions] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busyActivityId, setBusyActivityId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleComplete = (id: number) => {
-    if (completedActivities.includes(id)) {
-      setCompletedActivities(completedActivities.filter((actId) => actId !== id));
-    } else {
-      setCompletedActivities([...completedActivities, id]);
+  const activityCounts = useMemo(() => {
+    return (summary?.activity_stats || []).reduce<Record<string, number>>((acc, stat) => {
+      acc[stat.activity_id] = stat.completion_count;
+      return acc;
+    }, {});
+  }, [summary]);
+
+  const loadSummary = async () => {
+    try {
+      const data = await apiFetch<ActivitySummaryResponse>("/activities/summary");
+      setSummary(data);
+    } catch (error) {
+      toast({
+        title: "Unable to load activities",
+        description: error instanceof Error ? error.message : "Please try again shortly.",
+        variant: "destructive",
+      });
+      setSummary({ today_completed: 0, total_completed: 0, activity_stats: [] });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSummary();
+  }, []);
+
+  const handleStart = async (activity: Activity) => {
+    setBusyActivityId(activity.id);
+
+    try {
+      const result = await apiFetch<ActivitySessionResponse>("/activities/start", {
+        method: "POST",
+        body: JSON.stringify({
+          activity_id: activity.id,
+          title: activity.title,
+          category: activity.category,
+          duration_minutes: activity.duration,
+          recommended_source: "activities_page",
+        }),
+      });
+
+      setActiveSessions((prev) => ({ ...prev, [activity.id]: result.id }));
+
+      if (activity.vrEnabled) {
+        navigate("/vr", {
+          state: {
+            mode: vrModeMap[activity.id] || "mindful",
+            activityId: activity.id,
+            activitySessionId: result.id,
+            recommendedSource: "activities_page",
+          },
+        });
+        return;
+      }
+
+      toast({
+        title: "Activity started",
+        description: `${activity.title} is ready when you are. Mark it complete when finished.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Unable to start activity",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyActivityId(null);
+    }
+  };
+
+  const handleComplete = async (activity: Activity) => {
+    setBusyActivityId(activity.id);
+
+    try {
+      await apiFetch<ActivitySessionResponse>("/activities/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          session_id: activeSessions[activity.id] || null,
+          activity_id: activity.id,
+          title: activity.title,
+          category: activity.category,
+          duration_minutes: activity.duration,
+          recommended_source: "activities_page",
+        }),
+      });
+
+      setActiveSessions((prev) => {
+        const next = { ...prev };
+        delete next[activity.id];
+        return next;
+      });
+      await loadSummary();
+
+      toast({
+        title: "Activity completed",
+        description: `Nice work finishing ${activity.title}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Unable to complete activity",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyActivityId(null);
     }
   };
 
   return (
-    <Layout>
+    <AppLayout>
       <div className="p-4 lg:p-6 space-y-6 overflow-auto">
-        <div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Therapy Activities</h2>
-          <p className="text-muted-foreground text-sm">AI-curated activities and schedules for your wellness journey</p>
-        </div>
-
-        {/* Breathing Exercises Section */}
-        <div className="glass-card p-4 lg:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Wind className="w-5 h-5 text-primary" />
-            <h3 className="font-display font-semibold text-lg text-foreground">Breathing Exercises</h3>
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-foreground">Therapy Activities</h2>
+            <p className="text-muted-foreground text-sm">Evidence-based exercises that connect directly to your progress tracking.</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Deep Diaphragmatic */}
-            <div className="bg-gradient-to-br from-green-50/20 to-emerald-50/20 border border-green-200/30 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <Wind className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <h4 className="font-display font-semibold text-foreground">Deep Diaphragmatic</h4>
-                  <p className="text-sm text-muted-foreground">Relaxing</p>
-                </div>
-              </div>
-              
-              <p className="text-sm text-muted-foreground mb-4">
-                Sit comfortably. Breathe deeply through nose, belly expands. Pause. Exhale slowly.
-              </p>
-              
-              <button
-                onClick={() => navigate('/vr', { state: { mode: 'deep' } })}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-              >
-                <Wind className="w-4 h-4" />
-                Start Session
-              </button>
-            </div>
-
-            {/* Box Breathing */}
-            <div className="bg-gradient-to-br from-blue-50/20 to-cyan-50/20 border border-blue-200/30 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Target className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h4 className="font-display font-semibold text-foreground">Box Breathing</h4>
-                  <p className="text-sm text-muted-foreground">Focusing</p>
-                </div>
-              </div>
-              
-              <p className="text-sm text-muted-foreground mb-4">
-                Inhale 4s, Hold 4s, Exhale 4s, Hold 4s. Centers your focus.
-              </p>
-              
-              <button
-                onClick={() => navigate('/vr', { state: { mode: 'box' } })}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-              >
-                <Target className="w-4 h-4" />
-                Start Session
-              </button>
-            </div>
-
-            {/* Mindful Breathing */}
-            <div className="bg-gradient-to-br from-purple-50/20 to-pink-50/20 border border-purple-200/30 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h4 className="font-display font-semibold text-foreground">Mindful Breathing</h4>
-                  <p className="text-sm text-muted-foreground">Observing</p>
-                </div>
-              </div>
-              
-              <p className="text-sm text-muted-foreground mb-4">
-                Find a comfortable seat. Observe natural breath. If mind wanders, gently guide focus back.
-              </p>
-              
-              <button
-                onClick={() => navigate('/vr', { state: { mode: 'mindful' } })}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-              >
-                <Brain className="w-4 h-4" />
-                Start Session
-              </button>
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-sm text-primary">
+            <Sparkles className="w-4 h-4" />
+            Tracked in your analytics automatically
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("activities")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              activeTab === "activities"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card/80 text-foreground hover:bg-card"
-            }`}
-          >
-            <Lightbulb className="w-4 h-4" />
-            Activities
-          </button>
-          <button
-            onClick={() => setActiveTab("schedule")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              activeTab === "schedule"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card/80 text-foreground hover:bg-card"
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            Daily Schedule
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="glass-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+            <p className="text-sm text-muted-foreground mb-1">Completed today</p>
+            <p className="text-3xl font-bold text-foreground">{summary?.today_completed ?? 0}</p>
+          </div>
+          <div className="glass-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+            <p className="text-sm text-muted-foreground mb-1">Completed overall</p>
+            <p className="text-3xl font-bold text-foreground">{summary?.total_completed ?? 0}</p>
+          </div>
+          <div className="glass-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+            <p className="text-sm text-muted-foreground mb-1">Most used</p>
+            <p className="text-lg font-semibold text-foreground">
+              {summary?.activity_stats?.[0]?.title || "No activity data yet"}
+            </p>
+          </div>
         </div>
 
-        {/* Progress */}
         <div className="glass-card p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-foreground font-medium">Today's Progress</span>
+            <span className="text-foreground font-medium">Activity momentum</span>
             <span className="text-muted-foreground text-sm">
-              {completedActivities.length} / {activities.length} completed
+              {summary?.today_completed ?? 0} completed today
             </span>
           </div>
-          <div className="w-full bg-muted rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
             <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(completedActivities.length / activities.length) * 100}%` }}
+              className="bg-primary h-2 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(((summary?.today_completed ?? 0) / Math.max(SAMPLE_ACTIVITIES.length, 1)) * 100, 100)}%` }}
             />
           </div>
         </div>
 
-        {/* Activities Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {activities.map((activity) => {
-            const Icon = activity.icon;
-            const isCompleted = completedActivities.includes(activity.id);
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="glass-card p-5 animate-pulse space-y-4">
+                <div className="h-5 w-1/2 rounded bg-muted/50" />
+                <div className="h-4 w-full rounded bg-muted/40" />
+                <div className="h-4 w-3/4 rounded bg-muted/40" />
+                <div className="h-10 w-full rounded-xl bg-muted/50" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {SAMPLE_ACTIVITIES.map((activity) => {
+              const isBusy = busyActivityId === activity.id;
+              const hasActiveSession = Boolean(activeSessions[activity.id]);
+              const completionCount = activityCounts[activity.id] || 0;
 
-            return (
-              <div key={activity.id} className="glass-card p-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-foreground">{activity.title}</h3>
-                      <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                        {activity.duration}
+              return (
+                <div
+                  key={activity.id}
+                  className="glass-card p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"
+                >
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                      <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs text-primary mb-3">
+                        <Brain className="w-3.5 h-3.5" />
+                        {categoryLabelMap[activity.category] || activity.category}
+                      </div>
+                      <h3 className="font-display text-lg font-semibold text-foreground">{activity.title}</h3>
+                    </div>
+                    {activity.vrEnabled && (
+                      <span className="rounded-full bg-purple-500/15 px-3 py-1 text-xs text-purple-300 border border-purple-400/20">
+                        VR available
                       </span>
+                    )}
+                  </div>
+
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">{activity.description}</p>
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {activity.therapeuticGoals.map((goal) => (
+                      <span key={goal} className="rounded-full bg-background/80 px-2.5 py-1 text-xs text-muted-foreground border border-border/50">
+                        {goal.replace(/-/g, " ")}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                    <div className="inline-flex items-center gap-2">
+                      <Clock3 className="w-4 h-4" />
+                      {activity.duration} minutes
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{activity.description}</p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {activity.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-xs px-2 py-1 rounded-full bg-card border border-border/50 text-muted-foreground"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                    <div className="inline-flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      {completionCount} completions
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <button
-                      onClick={() => handleComplete(activity.id)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        isCompleted
-                          ? "bg-calm-sage/20 text-calm-sage"
-                          : "bg-primary text-primary-foreground hover:bg-primary/90"
-                      }`}
+                      type="button"
+                      onClick={() => handleStart(activity)}
+                      disabled={isBusy}
+                      className={cn(
+                        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300",
+                        "bg-primary text-primary-foreground hover:scale-[1.01] hover:bg-primary/90 disabled:opacity-60"
+                      )}
                     >
-                      {isCompleted ? "✓ Completed" : "Mark as Complete"}
+                      <Play className="w-4 h-4" />
+                      {isBusy ? "Working..." : activity.vrEnabled ? "Start in VR" : "Start"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleComplete(activity)}
+                      disabled={isBusy}
+                      className={cn(
+                        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300",
+                        hasActiveSession
+                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-400/20 hover:bg-emerald-500/25"
+                          : "bg-card/80 text-foreground border border-border/50 hover:border-primary/30 hover:text-primary",
+                        "disabled:opacity-60"
+                      )}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {hasActiveSession ? "Complete" : "Log complete"}
                     </button>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </Layout>
+    </AppLayout>
   );
 };
 

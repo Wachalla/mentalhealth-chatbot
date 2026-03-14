@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, Mic } from "lucide-react";
+import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
@@ -41,16 +41,7 @@ const ChatInput = ({ onSend, disabled, placeholder = "Share what's on your mind.
   return (
     <form onSubmit={handleSubmit} className="relative">
       <div className="flex items-end gap-3">
-        {/* Attachment button */}
-        <button
-          type="button"
-          className="w-12 h-12 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
-        >
-          <Paperclip className="w-5 h-5" />
-        </button>
-
-        {/* Input field */}
-        <div className="flex-1 flex items-end bg-card/80 backdrop-blur-sm rounded-full border border-border/50 px-5 py-3">
+        <div className="flex-1 flex items-end bg-card/80 backdrop-blur-sm rounded-[1.75rem] border border-border/50 px-5 py-3 shadow-sm transition-all duration-300 focus-within:border-primary/60 focus-within:shadow-lg focus-within:shadow-primary/10">
           <textarea
             ref={textareaRef}
             value={message}
@@ -66,22 +57,13 @@ const ChatInput = ({ onSend, disabled, placeholder = "Share what's on your mind.
           />
         </div>
 
-        {/* Mic button */}
-        <button
-          type="button"
-          className="w-12 h-12 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
-        >
-          <Mic className="w-5 h-5" />
-        </button>
-
-        {/* Send button */}
         <button
           type="submit"
           disabled={!message.trim() || disabled}
           className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200",
+            "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300",
             message.trim() && !disabled
-              ? "bg-primary text-primary-foreground hover:scale-105 shadow-lg"
+              ? "bg-primary text-primary-foreground hover:scale-105 hover:shadow-xl shadow-lg"
               : "bg-card/80 text-muted-foreground cursor-not-allowed border border-border/50"
           )}
         >

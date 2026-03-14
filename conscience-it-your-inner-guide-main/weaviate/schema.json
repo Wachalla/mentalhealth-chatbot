@@ -1,0 +1,59 @@
+{
+  "class": "EmotionalMemory",
+  "description": "Vector database for storing emotional context and conversation embeddings",
+  "vectorizer": "text2vec-transformers",
+  "moduleConfig": {
+    "text2vec-transformers": {
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "modelURL": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/pytorch_model.bin"
+    }
+  },
+  "properties": [
+    {
+      "name": "user_id",
+      "dataType": ["string"],
+      "description": "Unique identifier for the user"
+    },
+    {
+      "name": "emotion",
+      "dataType": ["string"],
+      "description": "Primary emotion associated with the memory"
+    },
+    {
+      "name": "message",
+      "dataType": ["text"],
+      "description": "Original message or conversation content"
+    },
+    {
+      "name": "context",
+      "dataType": ["text"],
+      "description": "Additional context or metadata"
+    },
+    {
+      "name": "timestamp",
+      "dataType": ["date"],
+      "description": "When the memory was created"
+    },
+    {
+      "name": "intensity",
+      "dataType": ["number"],
+      "description": "Emotional intensity score (1-10)"
+    },
+    {
+      "name": "conversation_id",
+      "dataType": ["string"],
+      "description": "Related conversation session"
+    },
+    {
+      "name": "memory_type",
+      "dataType": ["string"],
+      "description": "Type of memory: conversation, mood_entry, insight"
+    }
+  ],
+  "vectorIndexType": "hnsw",
+  "vectorIndexConfig": {
+    "maxConnections": 64,
+    "efConstruction": 128,
+    "ef": 64
+  }
+}

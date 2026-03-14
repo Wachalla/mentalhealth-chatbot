@@ -99,6 +99,7 @@ export type Database = {
           color_scheme: string
           font_style: string
           id: string
+          overlay_effect: string
           updated_at: string
         }
         Insert: {
@@ -107,6 +108,7 @@ export type Database = {
           color_scheme?: string
           font_style?: string
           id: string
+          overlay_effect?: string
           updated_at?: string
         }
         Update: {
@@ -115,6 +117,7 @@ export type Database = {
           color_scheme?: string
           font_style?: string
           id?: string
+          overlay_effect?: string
           updated_at?: string
         }
         Relationships: []

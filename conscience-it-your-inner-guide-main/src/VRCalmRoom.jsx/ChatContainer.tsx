@@ -9,15 +9,23 @@ import SupportInterface from "@/components/SupportInterface";
 import { ScrollArea } from "@/VRCalmRoom.jsx/ui/scroll-area";
 import { Brain, User, Sparkles, Heart, AlertTriangle } from "lucide-react";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useNavigate } from "react-router-dom";
 
 const ChatContainer = () => {
   const [selectedPersonality, setSelectedPersonality] = useState("empathetic");
-  const { messages, isLoading, sendMessage, currentPersonality, availablePersonalities, changePersonality } = useChat(selectedPersonality);
+  const { messages, isLoading, sendMessage, currentPersonality, latestGuidance, availablePersonalities, changePersonality } = useChat(selectedPersonality);
   const scrollRef = useRef<HTMLDivElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const [showCrisisSupport, setShowCrisisSupport] = useState(false);
   const [isCrisisDetected, setIsCrisisDetected] = useState(false);
   const { addNotification } = useNotifications();
+  const navigate = useNavigate();
+
+  const activityLabelMap: Record<string, string> = {
+    "breathing-4-7-8": "4-7-8 Breathing",
+    "grounding-5-4-3-2-1": "5-4-3-2-1 Grounding",
+    "mindfulness-body-scan": "Body Scan Meditation",
+  };
 
   // Suicide/self-harm detection
   const detectCrisisContent = (text: string) => {
@@ -92,7 +100,7 @@ const ChatContainer = () => {
           ? 'border-red-500 bg-red-50' 
           : 'border-border/30 bg-card/30'
       }`}>
-        {isCrisisDetected ? (
+        {showCrisisSupport ? (
           <div className="p-4">
             <div className="flex items-center gap-3 mb-3">
               <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -170,7 +178,56 @@ const ChatContainer = () => {
                 timestamp={message.timestamp}
               />
             ))}
-            {isLoading && messages[messages.length - 1]?.content === "" && (
+            {latestGuidance && messages[messages.length - 1]?.role === "assistant" && (
+              <div className="rounded-2xl border border-border/50 bg-card/60 p-4 shadow-sm transition-all duration-300 animate-fade-in">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-3">
+                  <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">
+                    {latestGuidance.therapeuticApproach.replace(/_/g, " ")}
+                  </span>
+                  {latestGuidance.topics.map((topic) => (
+                    <span key={topic} className="rounded-full bg-muted px-2 py-1">
+                      {topic.replace(/_/g, " ")}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-2">Suggested next steps</p>
+                    <ul className="space-y-2">
+                      {latestGuidance.suggestions.map((suggestion) => (
+                        <li key={suggestion} className="text-sm text-muted-foreground leading-relaxed">
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {latestGuidance.recommendedActivities.map((activityId) => (
+                      <button
+                        key={activityId}
+                        type="button"
+                        onClick={() => navigate("/activities")}
+                        className="rounded-full border border-border/60 bg-background/80 px-3 py-2 text-sm text-foreground transition-all duration-300 hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                      >
+                        {activityLabelMap[activityId] || activityId}
+                      </button>
+                    ))}
+                    {latestGuidance.suggestedVrMode && (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/vr", { state: { mode: latestGuidance.suggestedVrMode, recommendedSource: "chat" } })}
+                        className="rounded-full bg-primary px-3 py-2 text-sm text-primary-foreground transition-all duration-300 hover:scale-[1.02] hover:bg-primary/90"
+                      >
+                        Open VR Exercise
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            {isLoading && (
               <TypingIndicator />
             )}
             <div ref={endOfMessagesRef} />

@@ -1,0 +1,86 @@
+/* ============================================
+   LOCAL FONT-FACE DECLARATIONS
+   Nunito & Quicksand - Self-hosted
+   ============================================ */
+
+/* ========== NUNITO ========== */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/nunito-light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/nunito-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/nunito-medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/nunito-semibold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/nunito-bold.woff2') format('woff2');
+}
+
+/* ========== QUICKSAND ========== */
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/quicksand-light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/quicksand-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/quicksand-medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/quicksand-semibold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/quicksand-bold.woff2') format('woff2');
+}
